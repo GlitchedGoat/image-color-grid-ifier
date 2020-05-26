@@ -12,8 +12,12 @@ namespace image_color_grid_izer
         {
             [Option('f', "filepath", Required = true, HelpText = "Path of the image to convert")]
             public string Filepath {get; set;}
+
             [Option('o', "outputfilepath", Required = false, HelpText = "Path of the resulting image to write")]
             public string OutputFilepath {get; set;}
+
+            [Option('s', "spacing", Required = false, HelpText = "grid size; how often to draw a full-color pixel")]
+            public int? PixelSpacing {get; set;}
         }
 
         public static Image<Rgba32> loadImage(string filepath) {
@@ -23,18 +27,17 @@ namespace image_color_grid_izer
             return loaded.CloneAs<Rgba32>();
         }
 
-        public static Image<Rgba32> convertImage(Image<Rgba32> input) {
+        public static Image<Rgba32> convertImage(Image<Rgba32> input, int spacing) {
             System.Console.WriteLine($"Converting image of dimensions: {input.Width} by {input.Height}");
             // var converted = new Image<Rgba32>(input.Width, input.Height);
             // Note: GrayScale() can accept an arg
             // https://docs.sixlabors.com/api/ImageSharp/SixLabors.ImageSharp.Processing.GrayscaleExtensions.html
             var converted = input.Clone(s => s.Grayscale());
 
-            int spacing = 5;
             // each pixel at once
             for (int x = 0; x < input.Width; x++) {
                 for (int y = 0; y < input.Height; y++) {
-                    if (x % spacing == 0 && y % spacing == 0) {
+                    if (x % spacing == 0 || y % spacing == 0) {
                         // use original pixel color
                         converted[x, y] = input[x, y];
                     }
@@ -55,7 +58,7 @@ namespace image_color_grid_izer
             Parser.Default.ParseArguments<Options>(args)
                 .WithParsed<Options>(o => {
                     var img = loadImage(o.Filepath);
-                    var converted = convertImage(img);
+                    var converted = convertImage(img, o.PixelSpacing ?? 10);
                     saveImage(converted, o.OutputFilepath ?? $"{o.Filepath}-converted.png");
                 });
         }
