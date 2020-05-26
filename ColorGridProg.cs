@@ -1,6 +1,7 @@
 ﻿using System;
 using CommandLine;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace image_color_grid_izer
@@ -22,16 +23,25 @@ namespace image_color_grid_izer
             return loaded.CloneAs<Rgba32>();
         }
 
-        public static void convertImage(Image<Rgba32> input) {
+        public static Image<Rgba32> convertImage(Image<Rgba32> input) {
             System.Console.WriteLine($"Converting image of dimensions: {input.Width} by {input.Height}");
-            var converted = new Image<Rgba32>(input.Width, input.Height);
+            // var converted = new Image<Rgba32>(input.Width, input.Height);
+            // Note: GrayScale() can accept an arg
+            // https://docs.sixlabors.com/api/ImageSharp/SixLabors.ImageSharp.Processing.GrayscaleExtensions.html
+            var converted = input.Clone(s => s.Grayscale());
 
-            // // each pixel at once
-            // for (int x = 0; x < input.Width; x++) {
-            //     for (int y = 0; y < input.Height; y++) {
-            //         var pixel = input.
-            //     }
-            // }
+            int spacing = 5;
+            // each pixel at once
+            for (int x = 0; x < input.Width; x++) {
+                for (int y = 0; y < input.Height; y++) {
+                    if (x % spacing == 0 && y % spacing == 0) {
+                        // use original pixel color
+                        converted[x, y] = input[x, y];
+                    }
+                }
+            }
+
+            return converted;
         }
 
         public static void saveImage(Image<Rgba32> image, string filepath) {
@@ -45,8 +55,8 @@ namespace image_color_grid_izer
             Parser.Default.ParseArguments<Options>(args)
                 .WithParsed<Options>(o => {
                     var img = loadImage(o.Filepath);
-                    convertImage(img);
-                    saveImage(img, o.OutputFilepath ?? $"{o.Filepath}-converted.png");
+                    var converted = convertImage(img);
+                    saveImage(converted, o.OutputFilepath ?? $"{o.Filepath}-converted.png");
                 });
         }
     }
