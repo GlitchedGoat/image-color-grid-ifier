@@ -13,14 +13,17 @@ namespace image_color_grid_izer
             [Option('f', "filepath", Required = true, HelpText = "Path of the image to convert")]
             public string Filepath {get; set;}
 
-            [Option('o', "outputfilepath", Required = false, HelpText = "Path of the resulting image to write")]
+            [Option('o', "outputfilepath", Required = false, HelpText = "Path of the resulting image to write. Default is <original-file>-converted.png")]
             public string OutputFilepath {get; set;}
 
-            [Option('s', "spacing", Required = false, HelpText = "grid size; how often to draw a full-color pixell. default 5px")]
+            [Option('s', "spacing", Required = false, HelpText = "Grid size; how often to draw a full-color pixel. Default 5px")]
             public int? PixelSpacing {get; set;}
 
-            [Option('l', "linewidth", Required = false, HelpText = "line width, how wide each lin is. default 1px.")]
+            [Option('l', "linewidth", Required = false, HelpText = "Line width, how wide each line is. Default 1px.")]
             public int? LineWidth {get; set;}
+
+            [Option('c', "colorsaturation", Required = false, HelpText = "How much to over-saturate colors, as a multiplier. 1.0 is unchanged and 2.5 is default.")]
+            public float? ColorSaturation {get; set;}
         }
 
         public static Image<Rgba32> loadImage(string filepath) {
@@ -30,15 +33,16 @@ namespace image_color_grid_izer
             return loaded.CloneAs<Rgba32>();
         }
 
-        public static Image<Rgba32> convertImage(Image<Rgba32> input, int spacing, int linewidth) {
+        public static Image<Rgba32> convertImage(Image<Rgba32> input, int spacing, int linewidth, float saturation) {
             System.Console.WriteLine($"Converting image of dimensions: {input.Width} by {input.Height}");
             // Note: GrayScale() can accept an arg
             // https://docs.sixlabors.com/api/ImageSharp/SixLabors.ImageSharp.Processing.GrayscaleExtensions.html
             var converted = input.Clone(s => s.Grayscale());
+            var source = input.Clone(s => s.Saturate(saturation));
 
             // each pixel at once
-            for (int x = 0; x < input.Width; x++) {
-                for (int y = 0; y < input.Height; y++) {
+            for (int x = 0; x < source.Width; x++) {
+                for (int y = 0; y < source.Height; y++) {
                     var xSpacing = x % spacing;
                     var ySpacing = y % spacing;
 
@@ -47,8 +51,8 @@ namespace image_color_grid_izer
                     // So if x/ySpacing is 0..lw
                     // if x/ySpacing < linewidth, allow it
                     if (xSpacing < linewidth || ySpacing < linewidth) {
-                        // use original pixel color
-                        converted[x, y] = input[x, y];
+                        // use saturated
+                        converted[x, y] = source[x, y];
                     }
                 }
             }
@@ -67,13 +71,19 @@ namespace image_color_grid_izer
                 .WithParsed<Options>(o => {
                     var pixelSpacing = o.PixelSpacing ?? 10;
                     var lineWidth = o.LineWidth ?? 1;
+                    var saturation = o.ColorSaturation ?? 2.5f;
 
                     if (lineWidth >= pixelSpacing) {
                         System.Console.WriteLine($"pixel spacing of {pixelSpacing} cannot be >= line width of {lineWidth}!");
                     }
-                    var img = loadImage(o.Filepath);
-                    var converted = convertImage(img, o.PixelSpacing ?? 10, o.LineWidth ?? 1);
-                    saveImage(converted, o.OutputFilepath ?? $"{o.Filepath}-converted.png");
+                    
+                    try {
+                        var img = loadImage(o.Filepath);
+                        var converted = convertImage(img, pixelSpacing, lineWidth, saturation);
+                        saveImage(converted, o.OutputFilepath ?? $"{o.Filepath}-converted.png");
+                    } catch (System.IO.FileNotFoundException e) {
+                        System.Console.WriteLine($"Couldn't open the file '{o.Filepath}' - check that you spelled it right!");
+                    }
                 });
         }
     }
