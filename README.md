@@ -20,5 +20,6 @@ Arguments:
   --version                Display version information..
   ```
   
-  Example:
+  The example below has no color pixels, aside from the grid:
+
   ![Example of grid-ified image](example-output.png)
