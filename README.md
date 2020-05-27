@@ -19,4 +19,4 @@ Arguments:
   ```
   
   Example:
-  ![Example of grid-ified image](example-result.png)
+  ![Example of grid-ified image](example-output.png)
